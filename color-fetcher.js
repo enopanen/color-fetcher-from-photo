@@ -1,8 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Dominant Color Finder</title>
-  <style>
+<style>
     .color-swatch {
       width: 50px;
       height: 50px;
@@ -13,8 +9,6 @@
       font-size: 12px;
     }
   </style>
-</head>
-<body>
 
 <h1>Upload an Image to Find Its Dominant Colors</h1>
 <input type="file" id="imageInput">
@@ -76,6 +70,10 @@
     return centroids;
   }
 
+  function isVibrant([r, g, b]) {
+    return r > 50 && g > 50 && b > 50;
+  }
+
   function displaySwatches(colors) {
     const resultDiv = document.getElementById('result');
     resultDiv.innerHTML = 'Dominant Colors: ';
@@ -112,8 +110,10 @@
     const sortedColors = Object.entries(colorMap).sort((a, b) => b[1] - a[1]);
     const rgbColors = sortedColors.map(([color]) => color.split(',').map(Number));
 
-    const dominantColors = kMeans(rgbColors);
+    const vibrantColors = rgbColors.filter(isVibrant);
+    const dominantColors = kMeans(vibrantColors.length > 0 ? vibrantColors : rgbColors);
     const hexColors = dominantColors.map(color => rgbToHex(...color));
+
     displaySwatches(hexColors);
   }
 
@@ -132,6 +132,3 @@
     reader.readAsDataURL(file);
   });
 </script>
-
-</body>
-</html>
