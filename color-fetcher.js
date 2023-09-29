@@ -1,17 +1,94 @@
-
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dominant Color Finder</title>
+  <style>
+    .color-swatch {
+      width: 50px;
+      height: 50px;
+      display: inline-block;
+      margin: 5px;
+      text-align: center;
+      vertical-align: top;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
 
 <h1>Upload an Image to Find Its Dominant Colors</h1>
 <input type="file" id="imageInput">
-
 <div id="result"></div>
 
 <script>
-  // Function to convert RGB to HEX
   function rgbToHex(r, g, b) {
+    r = Math.round(r);
+    g = Math.round(g);
+    b = Math.round(b);
     return "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
   }
 
-  // Function to get the dominant colors of an image
+  function colorDistance(color1, color2) {
+    return Math.sqrt(
+      Math.pow(color1[0] - color2[0], 2) +
+      Math.pow(color1[1] - color2[1], 2) +
+      Math.pow(color1[2] - color2[2], 2)
+    );
+  }
+
+  function kMeans(colors, k = 3) {
+    let centroids = colors.slice(0, k);
+    let clusters = [];
+
+    for (let i = 0; i < k; i++) {
+      clusters[i] = [];
+    }
+
+    colors.forEach(color => {
+      let minDistance = Infinity;
+      let clusterIndex = 0;
+
+      centroids.forEach((centroid, index) => {
+        const distance = colorDistance(color, centroid);
+        if (distance < minDistance) {
+          minDistance = distance;
+          clusterIndex = index;
+        }
+      });
+
+      clusters[clusterIndex].push(color);
+    });
+
+    centroids = clusters.map(cluster =>
+      cluster.reduce((acc, color) => {
+        acc[0] += color[0];
+        acc[1] += color[1];
+        acc[2] += color[2];
+        return acc;
+      }, [0, 0, 0])
+    );
+
+    centroids.forEach((sum, index) => {
+      const count = clusters[index].length;
+      centroids[index] = [sum[0] / count, sum[1] / count, sum[2] / count];
+    });
+
+    return centroids;
+  }
+
+  function displaySwatches(colors) {
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = 'Dominant Colors: ';
+    
+    colors.forEach(color => {
+      const swatch = document.createElement('div');
+      swatch.className = 'color-swatch';
+      swatch.style.backgroundColor = color;
+      swatch.innerHTML = `<br>${color}`;
+      resultDiv.appendChild(swatch);
+    });
+  }
+
   function getDominantColors(img) {
     const canvas = document.createElement('canvas');
     canvas.width = img.width;
@@ -33,15 +110,13 @@
     }
 
     const sortedColors = Object.entries(colorMap).sort((a, b) => b[1] - a[1]);
-    const topColors = sortedColors.slice(0, 3).map(([color]) => {
-      const [r, g, b] = color.split(',').map(Number);
-      return rgbToHex(r, g, b);
-    });
+    const rgbColors = sortedColors.map(([color]) => color.split(',').map(Number));
 
-    document.getElementById('result').innerHTML = `Dominant Colors: ${topColors.join(', ')}`;
+    const dominantColors = kMeans(rgbColors);
+    const hexColors = dominantColors.map(color => rgbToHex(...color));
+    displaySwatches(hexColors);
   }
 
-  // Handle image upload
   document.getElementById('imageInput').addEventListener('change', function() {
     const file = this.files[0];
     const img = new Image();
@@ -58,3 +133,5 @@
   });
 </script>
 
+</body>
+</html>
